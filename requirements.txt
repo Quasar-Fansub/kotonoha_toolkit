@@ -1,0 +1,11 @@
+bs4
+httpx
+PyDeepLX
+openai
+nicegui
+pylrc
+pyinstaller
+pywebview
+yt_dlp
+pysrt
+webvtt-py

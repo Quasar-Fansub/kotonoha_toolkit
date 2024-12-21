@@ -1,0 +1,41 @@
+{
+    "accept_gplv3": false,
+    "save_path": "D:\\Kotonoha Toolkit\\",
+    "video": {
+        "directory_name": "视频",
+        "cookies_file": "cookies.txt",
+        "description_template": "此视频转载自{platform}，链接见上\n\n原标题：{title}\n原作者：{author}\n原标签：{tags}\n投稿时间：{upload_date}\n原简介：\n{description}",
+        "tags_mapping": {
+            "VOICEROID劇場": "VOICEROID剧场",
+            "ボイスロイド劇場​​​​": "VOICEROID剧场",
+            "ボイスロイド実況": "VOICEROID实况",
+            "ソフトウェアトーク劇場": "Software Talk剧场",
+            "琴葉茜": "琴叶茜",
+            "琴葉葵": "琴叶葵",
+            "琴葉姉妹": "琴叶姐妹",
+            "結月ゆかり": "结月缘",
+            "紲星あかり": "绁星灯",
+            "東北きりたん": "东北切蒲英",
+            "東北ずん子": "东北俊子",
+            "東北イタコ": "东北伊达子"
+        }
+    },
+    "lyrics": {
+        "directory_name": "歌词"
+    },
+    "translator": {
+        "gpt_api_base": "https://api.openai.com/v1/",
+        "gpt_api_key": false,
+        "gpt_character_prompt": "琴葉葵=琴叶葵 琴葉茜=琴叶茜 結月ゆかり=结月缘\n紲星あかり=绁星灯 弦巻マキ=弦卷真纪\n東北ずん子=东北俊子 東北きりたん=东北切蒲英 東北イタコ=东北伊达子",
+        "gpt_models": [
+            {
+                "model": "gpt-4o",
+                "price": 2.5
+            },
+            {
+                "model": "gpt-3.5-turbo",
+                "price": 0.3
+            }
+        ]
+    }
+}
