@@ -377,7 +377,7 @@ def is_number(s):
 
 # 确定FFmpeg安装情况
 def is_ffmpeg_installed():
-    return shutil.which('ffmpegh') is not None
+    return shutil.which('ffmpeg') is not None
 
 # 除去颜色文本
 def strip_ansi(text):
