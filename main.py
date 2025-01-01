@@ -453,120 +453,101 @@ def updateButtonStatus(url):
     else:
         get_info_button.disable()
 
-# 获取信息：YouTube
-def getYouTubeInfo(url):
-    platform = "YouTube"
-    response = httpx.get(url, headers=headers)
-    response.encoding = 'utf-8'  # 确保响应内容使用UTF-8编码
-    soup = BeautifulSoup(response.text, 'html.parser')
+# 日期格式化
+def format_upload_date(upload_date_str):
+    try:
+        # 处理 yyyymmdd 格式
+        if len(upload_date_str) == 8:
+            year = upload_date_str[:4]
+            month = upload_date_str[4:6]
+            day = upload_date_str[6:8]
+            formatted_date = f"{year}-{month}-{day}"
+        
+        else:
 
-    parsed_url = urlparse(url)
-    params = parse_qs(parsed_url.query)
-    vid_id = params.get('v', [''])[0]
-
-    data = soup.find('script', string=lambda text: text and 'ytInitialData' in text).string
-    start_index = data.find('var ytInitialData = ') + len('var ytInitialData = ')
-    end_index = data.find(';', start_index)
-    data_json = json.loads(data[start_index:end_index])
-
-    thumbnail_url = f"https://i.ytimg.com/vi_webp/{vid_id}/maxresdefault.webp"
-    title_text = data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][0]["videoPrimaryInfoRenderer"]["title"]["runs"][0]["text"]
-    author_text = data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"]["owner"]["videoOwnerRenderer"]["title"]["runs"][0]["text"]
-
-    if "attributedDescription" in data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"]:
-        description_text = data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"]["attributedDescription"]["content"]
-    else:
-        description_text = "无简介"
-
-    data2 = soup.find('script', string=lambda text: text and 'ytInitialPlayerResponse' in text).string
-    InitialPlayerResponse_start_index = data2.find('var ytInitialPlayerResponse = ') + len('var ytInitialPlayerResponse = ')
-    InitialPlayerResponse_end_index = data2.find(';var meta', InitialPlayerResponse_start_index)
-    data2_json = json.loads(data2[InitialPlayerResponse_start_index:InitialPlayerResponse_end_index])
+            date_formats = [
+                '%Y%m%d',      # yyyymmdd
+                '%Y-%m-%d',    # yyyy-mm-dd
+                '%d/%m/%Y',    # dd/mm/yyyy
+            ]
+            
+            for fmt in date_formats:
+                try:
+                    parsed_date = datetime.strptime(upload_date_str, fmt)
+                    formatted_date = parsed_date.strftime('%Y-%m-%d')
+                    break
+                except ValueError:
+                    continue
+            else:
+                return upload_date_str
+        
+        current_time = datetime.now().strftime('%H:%M:%S')
+        
+        return f"{formatted_date} {current_time}"
     
-    uploadDate_text = data2_json['microformat']['playerMicroformatRenderer']['uploadDate']
-    uploadDate = datetime.fromisoformat(uploadDate_text)
-    timestamp = uploadDate.timestamp()
-    uploadDate_text = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception as e:
+        print(f"日期格式化错误: {e}")
+        return upload_date_str
+
+
+
+# 标签清理
+def clean_tags(tags):
+    cleaned_tags = []
+    for tag in tags:
+        # 去除标签中的 # 符号
+        cleaned_tag = tag.replace('#', '').strip()
+        if cleaned_tag:
+            cleaned_tags.append(cleaned_tag)
     
-    if "superTitleLink" in data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][0]["videoPrimaryInfoRenderer"]:
-        tags = data_json["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][0]["videoPrimaryInfoRenderer"]["superTitleLink"]["runs"]
-        tags_data = json.loads(json.dumps(tags))
-        tags_text = ','.join(item['text'][1:] for item in tags_data if item.get('text') and item['text'].strip())
-    else:
-        tags_text = "无标签"
+    return cleaned_tags
 
-    return url, platform, title_text, thumbnail_url, author_text, uploadDate_text, description_text, tags_text, matchTags(tags_text)
 
-# 获取信息：YouTube Shorts
-def getYouTubeShortsInfo(url):
-    platform = "YouTube"
-    response = httpx.get(url, headers=headers)
-    response.encoding = 'utf-8'  # 确保响应内容使用UTF-8编码
-    soup = BeautifulSoup(response.text, 'html.parser')
+# 获取信息
+def get_video_info(url):
+    # yt-dlp 配置
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'ignoreerrors': False,
+        'no_color': True,
+    }
 
-    parsed_url = urlparse(url)
-    vid_id = parsed_url.path.split('/')[-1]
+    # 创建 yt-dlp 对象
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        # 提取视频信息
+        info_dict = ydl.extract_info(url, download=False)
+        
+        # 提取具体信息
+        platform = info_dict.get('extractor', '未知平台')
+        title = info_dict.get('title', '未知标题')
+        thumbnail = info_dict.get('thumbnail', '无封面')
+        uploader = info_dict.get('uploader', '未知作者')
+        
+        # 格式化上传日期
+        upload_date_raw = info_dict.get('upload_date', '未知日期')
+        upload_date = format_upload_date(upload_date_raw)
+        
+        description = info_dict.get('description', '无描述')
+        
+        # 处理并清理标签
+        tags_raw = info_dict.get('tags', [])
+        tags = clean_tags(tags_raw)
+        tags_str = ','.join(tags) if tags else '无标签'
 
-    data = soup.find('script', string=lambda text: text and 'ytInitialData' in text).string
-    start_index = data.find('var ytInitialData = ') + len('var ytInitialData = ')
-    end_index = data.find(';', start_index)
-    data_json = json.loads(data[start_index:end_index])
-
-    thumbnail_url = f"https://i.ytimg.com/vi_webp/{vid_id}/maxresdefault.webp"
-    title_text = data_json["overlay"]["reelPlayerOverlayRenderer"]["metapanel"]["reelMetapanelViewModel"]["metadataItems"][1]["shortsVideoTitleViewModel"]["text"]["content"]
-    author_text = data_json["engagementPanels"][1]["engagementPanelSectionListRenderer"]["content"]["structuredDescriptionContentRenderer"]["items"][0]["videoDescriptionHeaderRenderer"]["channel"]["simpleText"]
-
-    if len(data_json["engagementPanels"][1]["engagementPanelSectionListRenderer"]["content"]["structuredDescriptionContentRenderer"]["items"]) >= 2:
-        description_data = data_json["engagementPanels"][1]["engagementPanelSectionListRenderer"]["content"]["structuredDescriptionContentRenderer"]["items"][1]["expandableVideoDescriptionBodyRenderer"]["descriptionBodyText"]["runs"]
-        description_text = ''.join(item['text'] for item in description_data)
-        tags_text = ','.join(item['text'][1:] for item in description_data if item.get('text') and 'navigationEndpoint' in item and item['text'].strip())
-    else:
-        description_text = "无简介"
-        tags_text = "无标签"
-
-    data2 = soup.find('script', string=lambda text: text and 'ytInitialPlayerResponse' in text).string
-    InitialPlayerResponse_start_index = data2.find('var ytInitialPlayerResponse = ') + len('var ytInitialPlayerResponse = ')
-    InitialPlayerResponse_end_index = data2.find(';var meta', InitialPlayerResponse_start_index)
-    data2_json = json.loads(data2[InitialPlayerResponse_start_index:InitialPlayerResponse_end_index])
-
-    uploadDate_text = data2_json['microformat']['playerMicroformatRenderer']['uploadDate']
-    uploadDate = datetime.fromisoformat(uploadDate_text)
-    timestamp = uploadDate.timestamp()
-    uploadDate_text = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-
-    return url, platform, title_text, thumbnail_url, author_text, uploadDate_text, description_text, tags_text, matchTags(tags_text)
-
-# 获取信息：Niconico
-def getNiconicoInfo(url):
-    platform = "ニコニコ動画"
+        # 返回信息字典
+        return url,platform,title,thumbnail,uploader,upload_date,description,tags_str,matchTags(tags_str)
+    
+# 获取Niconico视频标签
+def get_niconico_tags(url):
     html=httpx.get(url,headers=headers)
     soup = BeautifulSoup(html, 'html.parser')
 
     data = soup.find_all('script')[0].text.strip()
     data_json = json.loads(data)
-
-    thumbnail_url=data_json["thumbnailUrl"][0]
-    title_text=data_json["name"]
-    author_text=data_json["author"]["name"]
-
-    #获取到的时间是日本时间，通过转为时间戳再转为时间转换成中国时间
-    uploadDate_text=data_json["uploadDate"]
-    uploadDate = datetime.fromisoformat(uploadDate_text)
-    timestamp = uploadDate.timestamp()
-    uploadDate_text = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    
-    # 获取简介 是Unicode 需要转为明文
-    meta_content = soup.find('meta', attrs={'name': 'server-response'}).get('content')
-    meta_json = json.loads(meta_content)
-    description_html=meta_json["data"]["response"]["video"]["description"]
-
-    description_html = re.sub(r'<br>', '\n', description_html)
-    description_soup = BeautifulSoup(description_html, 'html.parser')
-    description_text = description_soup.get_text()
-
     tags_text=data_json["keywords"]
 
-    return url,platform,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matchTags(tags_text)
+    return tags_text,matchTags(tags_text)
 
 # 标签匹配
 def matchTags(text):
@@ -585,11 +566,12 @@ async def getInfomation(input_url):
     platform=await run.io_bound(getVideoPlatform,input_url)
     global title_path,thumbnail_url,info_text
     if platform=="Niconico":
-        url,platform_name,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matched_tags=await run.io_bound(getNiconicoInfo,input_url)
-    elif platform=="YouTube":
-        url,platform_name,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matched_tags=await run.io_bound(getYouTubeInfo,input_url)
-    elif platform=="YouTube Shorts":
-        url,platform_name,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matched_tags=await run.io_bound(getYouTubeShortsInfo,input_url)
+        url,platform_name,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matched_tags=await run.io_bound(get_video_info,input_url)
+        platform_name="Niconico"
+        tags_text,matched_tags=await run.io_bound(get_niconico_tags,input_url)
+    elif platform=="YouTube" or platform=="YouTube Shorts":
+        url,platform_name,title_text,thumbnail_url,author_text,uploadDate_text,description_text,tags_text,matched_tags=await run.io_bound(get_video_info,input_url)
+        platform_name="Youtube"
     else:
         n.dismiss()
         ui.notify("这不是N站或油管的链接呀 o(≧口≦)o",position='top-right',type='negative')
