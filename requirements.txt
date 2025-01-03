@@ -9,3 +9,4 @@ pywebview
 yt_dlp
 pysrt
 webvtt-py
+pycryptodomex
