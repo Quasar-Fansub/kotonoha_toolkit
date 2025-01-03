@@ -1585,7 +1585,7 @@ with ui.element('div').classes('fixed-nav-container'):
     with ui.element('div').classes('fixed-nav'):
         with ui.element('div').classes('gradient-border'):
             with ui.element('div').classes('nav-content'):
-                ui.button('源代码', on_click=lambda: (ui.run_javascript('window.open("https://github.com/ivyw0425/kotonoha_toolkit", "_blank")')), icon='code').props('flat color=black').classes('nav-btn')
+                ui.button('源代码', on_click=lambda: (ui.run_javascript('window.open("https://github.com/Quasar-Fansub/kotonoha_toolkit", "_blank")')), icon='code').props('flat color=black').classes('nav-btn')
 
 # 初始化界面
 get_info_button.disable()
